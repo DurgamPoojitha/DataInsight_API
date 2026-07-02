@@ -1,0 +1,3 @@
+"""
+DataInsight API — Schemas Package
+"""
