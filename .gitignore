@@ -58,3 +58,8 @@ logs/
 
 # --- Docker ---
 *.tar
+
+# Keep placeholder files in ignored directories
+!uploads/.gitkeep
+!plots/.gitkeep
+!reports/.gitkeep
