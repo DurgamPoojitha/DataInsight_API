@@ -1,0 +1,36 @@
+# ============================================================
+# DataInsight API — Python Dependencies
+# Python 3.12+ compatible (tested on 3.14)
+# ============================================================
+
+# --- Web Framework ---
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
+
+# --- Data Processing ---
+pandas>=2.2.0
+numpy>=1.26.0
+scipy>=1.13.0
+openpyxl>=3.1.0          # Excel file support for pandas
+python-multipart>=0.0.9   # Required for FastAPI UploadFile support
+
+# --- Visualization ---
+plotly>=5.22.0
+kaleido>=0.2.1            # Static image export for Plotly (optional)
+
+# --- PDF Report Generation ---
+reportlab>=4.2.0
+
+# --- Caching ---
+redis>=5.0.0
+
+# --- Configuration & Validation ---
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+python-dotenv>=1.0.0
+
+# --- Async file I/O ---
+aiofiles>=23.2.0
+
+# --- Utilities ---
+python-dateutil>=2.9.0
