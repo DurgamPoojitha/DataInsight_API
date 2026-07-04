@@ -36,6 +36,7 @@ from app.routers import health as health_router
 from app.routers import cleaning as cleaning_router
 from app.routers import analysis as analysis_router
 from app.routers import missing_values as missing_values_router
+from app.routers import outliers as outliers_router
 from app.services.dataset_service import DatasetService
 from app.utils.exception_handlers import (
     datainsight_exception_handler,
@@ -174,6 +175,11 @@ app.include_router(
 
 app.include_router(
     missing_values_router.router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    outliers_router.router,
     prefix="/api/v1",
 )
 
