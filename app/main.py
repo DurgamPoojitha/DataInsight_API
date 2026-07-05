@@ -38,6 +38,7 @@ from app.routers import analysis as analysis_router
 from app.routers import missing_values as missing_values_router
 from app.routers import outliers as outliers_router
 from app.routers import correlation as correlation_router
+from app.routers import visualization as visualization_router
 from app.services.dataset_service import DatasetService
 from app.utils.exception_handlers import (
     datainsight_exception_handler,
@@ -186,6 +187,11 @@ app.include_router(
 
 app.include_router(
     correlation_router.router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    visualization_router.router,
     prefix="/api/v1",
 )
 
