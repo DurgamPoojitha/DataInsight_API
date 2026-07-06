@@ -26,6 +26,11 @@ echo "  Workers: ${WORKERS}"
 echo "  Log:     ${LOG_LEVEL}"
 echo "=============================================="
 
+echo "Starting Redis server in background..."
+redis-server --daemonize yes --pidfile /tmp/redis.pid --logfile /tmp/redis.log --dir /tmp
+
+echo "Starting Uvicorn..."
+
 exec uvicorn app.main:app \
     --host "${HOST}" \
     --port "${PORT}" \

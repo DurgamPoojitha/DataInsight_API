@@ -1,12 +1,13 @@
 # ============================================================
-# DataInsight API — Dockerfile
+# DataInsight API — Production Dockerfile
 # ============================================================
 # Multi-stage build:
 #   Stage 1 (builder): Install Python dependencies into a venv
-#   Stage 2 (runtime): Copy the venv and source into a slim image
+#   Stage 2 (runtime): Install Redis, copy the venv and source into a slim image
 #
-# Build:  docker build -t datainsight-api .
-# Run:    docker run -p 8000:8000 datainsight-api
+# Render deployment:
+#   Render will automatically inject the $PORT environment variable.
+#   The start.sh script will bind Uvicorn to this port and start Redis.
 
 # ── Stage 1: Builder ─────────────────────────────────────────
 FROM python:3.12-slim AS builder
@@ -23,12 +24,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install dependencies first (Docker layer cache optimisation)
+# Install dependencies first (Docker layer cache optimization)
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
 # ── Stage 2: Runtime ─────────────────────────────────────────
 FROM python:3.12-slim AS runtime
+
+# Install Redis server
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    redis-server \
+    && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser
@@ -52,18 +58,19 @@ RUN chmod +x start.sh
 # Switch to non-root user
 USER appuser
 
-# Expose the default application port
+# Expose the default application port (Render overrides this with $PORT at runtime)
 EXPOSE 8000
 
 # Environment variable defaults (override at runtime)
 ENV HOST=0.0.0.0 \
     PORT=8000 \
     WORKERS=1 \
-    LOG_LEVEL=info
+    LOG_LEVEL=info \
+    REDIS_URL=redis://localhost:6379
 
 # Health check for container orchestrators
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "import urllib.request, os; urllib.request.urlopen('http://localhost:' + os.environ.get('PORT', '8000') + '/health')" || exit 1
 
-# Start the application
+# Start the application (Redis + Uvicorn)
 CMD ["./start.sh"]
