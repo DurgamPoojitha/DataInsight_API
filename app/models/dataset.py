@@ -12,9 +12,10 @@ Using a dataclass rather than Pydantic here keeps the domain layer dependency-
 free and fast (no validation overhead for internal objects).
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
+import json
 
 
 @dataclass
@@ -57,6 +58,19 @@ class DatasetMetadata:
     def file_size_mb(self) -> float:
         """Return file size in megabytes, rounded to 4 decimal places."""
         return round(self.file_size_bytes / (1024 * 1024), 4)
+
+    def to_json(self) -> str:
+        d = asdict(self)
+        d['stored_path'] = str(d['stored_path'])
+        d['uploaded_at'] = d['uploaded_at'].isoformat()
+        return json.dumps(d)
+
+    @classmethod
+    def from_json(cls, json_str: str) -> "DatasetMetadata":
+        d = json.loads(json_str)
+        d['stored_path'] = Path(d['stored_path'])
+        d['uploaded_at'] = datetime.fromisoformat(d['uploaded_at'])
+        return cls(**d)
 
     def to_dict(self) -> dict:
         """

@@ -128,9 +128,9 @@ app = FastAPI(
 # Middleware
 # ---------------------------------------------------------------------------
 
-# CORS — allow all origins in development; tighten in production via env var
+# CORS — tighten in production via env var
 _ALLOWED_ORIGINS: list[str] = os.getenv(
-    "CORS_ORIGINS", "*"
+    "CORS_ORIGINS", ""
 ).split(",")
 
 app.add_middleware(

@@ -97,7 +97,7 @@ async def upload_dataset(
     file_content: bytes = await file.read()
 
     # Delegate ALL business logic to the service layer
-    metadata = service.upload_csv(
+    metadata = await service.upload_csv(
         file_content=file_content,
         original_filename=file.filename or "unnamed.csv",
     )

@@ -21,8 +21,11 @@ SOLID Principles Applied:
     an optional cache interface, not on concrete FastAPI or Redis objects.
 """
 
+import hashlib
 import io
 import json
+import uuid
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -79,10 +82,6 @@ class DatasetService:
                         will be stored.  Created automatically if absent.
         """
         self.upload_dir: Path = upload_dir
-        # In-memory store: dataset_id → DatasetMetadata
-        # In a production system with multiple workers this would be replaced
-        # by a shared store (Redis, PostgreSQL, etc.).
-        self._metadata_store: dict[str, DatasetMetadata] = {}
 
         # Ensure the upload directory exists before any writes
         ensure_directory(self.upload_dir)
@@ -92,7 +91,7 @@ class DatasetService:
     # Upload
     # ------------------------------------------------------------------
 
-    def upload_csv(
+    async def upload_csv(
         self,
         file_content: bytes,
         original_filename: str,
@@ -132,7 +131,9 @@ class DatasetService:
         validate_file_size(file_content, original_filename)
 
         # ── Step 3: Parse with Pandas ─────────────────────────────────────
-        dataframe: pd.DataFrame = self._parse_csv(file_content, original_filename)
+        dataframe: pd.DataFrame = await asyncio.to_thread(
+            self._parse_csv, file_content, original_filename
+        )
 
         # ── Step 4: Validate data presence ───────────────────────────────
         if dataframe.empty or len(dataframe) == 0:
@@ -148,7 +149,13 @@ class DatasetService:
             dataset_id=dataset_id,
             original_filename=original_filename,
         )
-        stored_path.write_bytes(file_content)
+        
+        # Non-blocking file write
+        def write_file():
+            stored_path.write_bytes(file_content)
+            
+        await asyncio.to_thread(write_file)
+        
         logger.info(
             "File written to disk",
             path=str(stored_path),
@@ -185,31 +192,30 @@ class DatasetService:
 
     def get_dataset(self, dataset_id: str) -> DatasetMetadata:
         """
-        Retrieve the metadata for a single dataset by its UUID.
-
-        Args:
-            dataset_id: UUID string of the dataset to retrieve.
-
-        Returns:
-            The DatasetMetadata instance for that dataset.
-
-        Raises:
-            DatasetNotFoundError: When no dataset with the given ID exists.
+        Retrieve the metadata for a single dataset by its UUID from disk.
         """
-        metadata: Optional[DatasetMetadata] = self._metadata_store.get(dataset_id)
-        if metadata is None:
-            logger.warning("Dataset not found", dataset_id=dataset_id)
+        meta_path = self.upload_dir / f"{dataset_id}_metadata.json"
+        if not meta_path.exists():
+            logger.warning("Dataset metadata not found", dataset_id=dataset_id)
             raise DatasetNotFoundError(dataset_id=dataset_id)
-        return metadata
+        try:
+            content = meta_path.read_text()
+            return DatasetMetadata.from_json(content)
+        except Exception as e:
+            logger.error("Failed to parse metadata", dataset_id=dataset_id, error=str(e))
+            raise DatasetNotFoundError(dataset_id=dataset_id)
 
     def list_datasets(self) -> list[DatasetMetadata]:
         """
-        Return all registered datasets, sorted by upload time (newest first).
-
-        Returns:
-            List of DatasetMetadata instances.  Empty list if none uploaded yet.
+        Return all registered datasets from disk, sorted by upload time (newest first).
         """
-        datasets = list(self._metadata_store.values())
+        datasets = []
+        for meta_path in self.upload_dir.glob("*_metadata.json"):
+            try:
+                content = meta_path.read_text()
+                datasets.append(DatasetMetadata.from_json(content))
+            except Exception:
+                continue
         datasets.sort(key=lambda m: m.uploaded_at, reverse=True)
         logger.debug("Listing datasets", count=len(datasets))
         return datasets
@@ -237,8 +243,10 @@ class DatasetService:
                 path=str(metadata.stored_path),
             )
 
-        # Remove from in-memory store
-        del self._metadata_store[dataset_id]
+        # Remove the metadata file from disk
+        meta_path = self.upload_dir / f"{dataset_id}_metadata.json"
+        if meta_path.exists():
+            meta_path.unlink()
         logger.info("Dataset deleted", dataset_id=dataset_id)
 
     def load_dataframe(self, dataset_id: str) -> pd.DataFrame:
@@ -353,15 +361,10 @@ class DatasetService:
 
     def _store_metadata(self, metadata: DatasetMetadata) -> None:
         """
-        Persist metadata to the in-memory store.
-
-        In a multi-worker deployment this would be replaced (or supplemented)
-        by a Redis hash write so all worker processes share the same state.
-
-        Args:
-            metadata: Populated DatasetMetadata instance to persist.
+        Persist metadata to disk as a JSON file alongside the raw data.
         """
-        self._metadata_store[metadata.dataset_id] = metadata
+        meta_path = self.upload_dir / f"{metadata.dataset_id}_metadata.json"
+        meta_path.write_text(metadata.to_json())
         logger.debug(
             "Metadata stored",
             dataset_id=metadata.dataset_id,
