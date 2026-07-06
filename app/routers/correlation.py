@@ -19,6 +19,8 @@ from app.schemas.correlation import (
 from app.schemas.response import SuccessResponse
 from app.services.dataset_service import DatasetService
 from app.services.correlation_service import CorrelationService
+from app.routers.dependencies import get_dataset_service, get_cache
+from app.utils.cache import RedisCache
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -40,7 +42,7 @@ def _get_plots_dir() -> pathlib.Path:
 
 
 def _get_correlation_service(
-    service: DatasetService = Depends(_get_dataset_service),
+    service: DatasetService = Depends(get_dataset_service),
     plots_dir: pathlib.Path = Depends(_get_plots_dir),
 ) -> CorrelationService:
     return CorrelationService(
@@ -66,14 +68,28 @@ async def analyse_correlation(
     dataset_id: str,
     request: CorrelationRequest,
     svc: CorrelationService = Depends(_get_correlation_service),
+    cache: RedisCache | None = Depends(get_cache),
 ) -> SuccessResponse[CorrelationReport]:
     """Run correlation analysis."""
+    import hashlib
+    req_hash = hashlib.md5(request.model_dump_json().encode()).hexdigest()
+    cache_key = f"corr:{dataset_id}:{req_hash}"
+
+    if cache:
+        cached_data = cache.get(cache_key, CorrelationReport)
+        if cached_data:
+            return SuccessResponse(data=cached_data)
+
     logger.info("Correlation analysis request", dataset_id=dataset_id)
     report = svc.analyse(
         dataset_id=dataset_id,
         request=request,
         api_base_url="/api/v1",
     )
+
+    if cache:
+        cache.set(cache_key, report)
+
     return SuccessResponse(data=report)
 
 

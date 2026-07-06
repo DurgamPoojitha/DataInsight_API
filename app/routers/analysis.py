@@ -31,6 +31,8 @@ from app.schemas.analysis import (
 from app.schemas.response import SuccessResponse
 from app.services.dataset_service import DatasetService
 from app.services.stats_service import StatisticalAnalysisEngine
+from app.routers.dependencies import get_dataset_service, get_cache
+from app.utils.cache import RedisCache
 from app.utils.logger import get_logger
 
 import numpy as np
@@ -47,14 +49,8 @@ router = APIRouter(
 # Dependency helpers
 # ---------------------------------------------------------------------------
 
-def _get_dataset_service() -> DatasetService:
-    """Retrieve the shared DatasetService from app.state."""
-    from app.main import app
-    return app.state.dataset_service
-
-
 def _get_analysis_engine(
-    service: DatasetService = Depends(_get_dataset_service),
+    service: DatasetService = Depends(get_dataset_service),
 ) -> StatisticalAnalysisEngine:
     """
     Construct a fresh StatisticalAnalysisEngine per request.
@@ -99,6 +95,7 @@ async def describe_dataset(
     dataset_id: str,
     request: AnalysisRequest,
     engine: StatisticalAnalysisEngine = Depends(_get_analysis_engine),
+    cache: RedisCache | None = Depends(get_cache),
 ) -> SuccessResponse[DatasetStatistics]:
     """
     Compute full descriptive statistics for all (or specified) numeric columns.
@@ -107,11 +104,21 @@ async def describe_dataset(
         dataset_id: UUID of the dataset to analyse.
         request:    AnalysisRequest body controlling which columns, NaN
                     policy, additional percentiles, and performance threshold.
-        engine:     Injected StatisticalAnalysisEngine.
+        cache:      Injected RedisCache instance.
 
     Returns:
         SuccessResponse wrapping DatasetStatistics.
     """
+    import hashlib
+    # Generate a cache key based on the dataset ID and request body
+    req_hash = hashlib.md5(request.model_dump_json().encode()).hexdigest()
+    cache_key = f"stats:{dataset_id}:{req_hash}"
+    
+    if cache:
+        cached_data = cache.get(cache_key, DatasetStatistics)
+        if cached_data:
+            return SuccessResponse(data=cached_data)
+
     logger.info(
         "Analysis describe request",
         dataset_id=dataset_id,
@@ -123,6 +130,10 @@ async def describe_dataset(
         dataset_id=dataset_id,
         request=request,
     )
+    
+    if cache:
+        cache.set(cache_key, result)
+        
     return SuccessResponse(data=result)
 
 
@@ -151,6 +162,7 @@ async def describe_column(
     column_name: str,
     request: AnalysisRequest,
     engine: StatisticalAnalysisEngine = Depends(_get_analysis_engine),
+    cache: RedisCache | None = Depends(get_cache),
 ) -> SuccessResponse[ColumnStatistics]:
     """
     Compute descriptive statistics for a single named column.
@@ -160,18 +172,29 @@ async def describe_column(
         column_name: Name of the column to analyse.
         request:     AnalysisRequest options (NaN policy, percentiles, etc.)
         engine:      Injected StatisticalAnalysisEngine.
+        cache:       Injected RedisCache instance.
 
     Returns:
         SuccessResponse wrapping ColumnStatistics.
     """
+    import hashlib
+    req_hash = hashlib.md5(request.model_dump_json().encode()).hexdigest()
+    cache_key = f"stats:col:{dataset_id}:{column_name}:{req_hash}"
+    
+    if cache:
+        cached_data = cache.get(cache_key, ColumnStatistics)
+        if cached_data:
+            return SuccessResponse(data=cached_data)
+
     logger.info(
         "Single-column analysis request",
         dataset_id=dataset_id,
         column=column_name,
+        nan_policy=request.nan_policy,
     )
 
     try:
-        col_stats: ColumnStatistics = engine.analyse_column(
+        result: ColumnStatistics = engine.analyse_column(
             dataset_id=dataset_id,
             column_name=column_name,
             request=request,
@@ -182,7 +205,10 @@ async def describe_column(
             detail=str(exc),
         ) from exc
 
-    return SuccessResponse(data=col_stats)
+    if cache:
+        cache.set(cache_key, result)
+
+    return SuccessResponse(data=result)
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +231,7 @@ async def describe_column(
 )
 async def list_numeric_columns(
     dataset_id: str,
-    service: DatasetService = Depends(_get_dataset_service),
+    service: DatasetService = Depends(get_dataset_service),
 ) -> SuccessResponse[dict]:
     """
     Return all numeric column names and their dtypes without computing stats.

@@ -18,8 +18,11 @@ from app.services.correlation_service import CorrelationService
 from app.services.dataset_service import DatasetService
 from app.services.missing_values_service import MissingValuesService
 from app.services.outlier_service import OutlierDetectionService
-from app.services.report_service import ReportService
+from app.services.correlation_service import CorrelationService
 from app.services.visualization_service import VisualizationService
+from app.services.report_service import ReportService
+from app.routers.dependencies import get_cache
+from app.utils.cache import RedisCache
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -67,14 +70,28 @@ async def generate_report(
     dataset_id: str,
     request: ReportGenerationRequest,
     svc: ReportService = Depends(_get_report_service),
+    cache: RedisCache | None = Depends(get_cache),
 ) -> SuccessResponse[ReportGenerationResponse]:
     """Trigger the PDF generation process."""
+    import hashlib
+    req_hash = hashlib.md5(request.model_dump_json().encode()).hexdigest()
+    cache_key = f"report:{dataset_id}:{req_hash}"
+
+    if cache:
+        cached_data = cache.get(cache_key, ReportGenerationResponse)
+        if cached_data:
+            return SuccessResponse(data=cached_data)
+
     logger.info("Report generation request", dataset_id=dataset_id)
     report = svc.generate_report(
         dataset_id=dataset_id,
         request=request,
         api_base_url="/api/v1",
     )
+    
+    if cache:
+        cache.set(cache_key, report)
+        
     return SuccessResponse(data=report)
 
 

@@ -24,15 +24,11 @@ SOLID Principles Applied:
 """
 
 from fastapi import APIRouter, Depends, UploadFile, File, status
-from fastapi.responses import JSONResponse
-
-from app.schemas.dataset import (
-    DatasetDetailResponse,
-    DatasetSummary,
-    DatasetUploadResponse,
-)
 from app.schemas.response import SuccessResponse
+from app.schemas.dataset import DatasetDetailResponse, DatasetSummary, DatasetUploadResponse
 from app.services.dataset_service import DatasetService
+from app.routers.dependencies import get_dataset_service, get_cache
+from app.utils.cache import RedisCache
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -45,27 +41,6 @@ router = APIRouter(
     prefix="/datasets",
     tags=["Datasets"],
 )
-
-
-# ---------------------------------------------------------------------------
-# Dependency: DatasetService
-# ---------------------------------------------------------------------------
-
-def get_dataset_service() -> DatasetService:
-    """
-    FastAPI dependency that provides a shared DatasetService instance.
-
-    In a production system this would inject a service configured from
-    application state (e.g., app.state.dataset_service set during startup).
-    For clarity we import the singleton from main here.
-
-    This function is the Dependency Inversion Point — swap the returned
-    object to use a different implementation (e.g., a database-backed service)
-    without changing any route code.
-    """
-    # Import here to avoid circular imports at module load time
-    from app.main import app
-    return app.state.dataset_service
 
 
 # ---------------------------------------------------------------------------
@@ -190,6 +165,7 @@ async def list_datasets(
 async def get_dataset(
     dataset_id: str,
     service: DatasetService = Depends(get_dataset_service),
+    cache: RedisCache | None = Depends(get_cache),
 ) -> SuccessResponse[DatasetDetailResponse]:
     """
     Retrieve detailed metadata for a specific dataset.
@@ -197,6 +173,7 @@ async def get_dataset(
     Args:
         dataset_id: UUID of the dataset (from the URL path).
         service:    Injected DatasetService instance.
+        cache:      Injected RedisCache instance.
 
     Returns:
         SuccessResponse wrapping a DatasetDetailResponse.
@@ -204,6 +181,12 @@ async def get_dataset(
     Raises:
         DatasetNotFoundError: Propagated from the service, caught globally.
     """
+    cache_key = f"dataset:{dataset_id}"
+    if cache:
+        cached_data = cache.get(cache_key, DatasetDetailResponse)
+        if cached_data:
+            return SuccessResponse(data=cached_data)
+
     metadata = service.get_dataset(dataset_id)
 
     detail = DatasetDetailResponse(
@@ -217,6 +200,9 @@ async def get_dataset(
         checksum=metadata.checksum,
         uploaded_at=metadata.uploaded_at,
     )
+    
+    if cache:
+        cache.set(cache_key, detail)
 
     return SuccessResponse(data=detail)
 

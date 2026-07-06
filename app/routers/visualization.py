@@ -18,6 +18,8 @@ from app.schemas.visualization import (
 )
 from app.services.dataset_service import DatasetService
 from app.services.visualization_service import VisualizationService
+from app.routers.dependencies import get_dataset_service, get_cache
+from app.utils.cache import RedisCache
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,10 +30,6 @@ router = APIRouter(
 )
 
 
-def _get_dataset_service() -> DatasetService:
-    from app.main import app
-    return app.state.dataset_service
-
 
 def _get_plots_dir() -> pathlib.Path:
     from app.main import PLOTS_DIR
@@ -39,7 +37,7 @@ def _get_plots_dir() -> pathlib.Path:
 
 
 def _get_viz_service(
-    service: DatasetService = Depends(_get_dataset_service),
+    service: DatasetService = Depends(get_dataset_service),
     plots_dir: pathlib.Path = Depends(_get_plots_dir),
 ) -> VisualizationService:
     return VisualizationService(
@@ -62,14 +60,28 @@ async def generate_visualizations(
     dataset_id: str,
     request: VisualizationBatchRequest,
     svc: VisualizationService = Depends(_get_viz_service),
+    cache: RedisCache | None = Depends(get_cache),
 ) -> SuccessResponse[VisualizationBatchReport]:
     """Generate multiple charts in a single request."""
+    import hashlib
+    req_hash = hashlib.md5(request.model_dump_json().encode()).hexdigest()
+    cache_key = f"viz:{dataset_id}:{req_hash}"
+
+    if cache:
+        cached_data = cache.get(cache_key, VisualizationBatchReport)
+        if cached_data:
+            return SuccessResponse(data=cached_data)
+
     logger.info("Visualization batch request", dataset_id=dataset_id, charts_count=len(request.charts))
     report = svc.generate_batch(
         dataset_id=dataset_id,
         request=request,
         api_base_url="/api/v1",
     )
+    
+    if cache:
+        cache.set(cache_key, report)
+        
     return SuccessResponse(data=report)
 
 

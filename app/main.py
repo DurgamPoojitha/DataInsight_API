@@ -50,6 +50,7 @@ from app.utils.exception_handlers import (
 from app.utils.exceptions import DataInsightBaseError
 from app.utils.file_utils import ensure_directory
 from app.utils.logger import get_logger
+from app.utils.cache import RedisCache
 
 logger = get_logger(__name__)
 
@@ -90,13 +91,18 @@ async def lifespan(app: FastAPI):
     # so it is accessible to dependency injection functions in routers.
     app.state.dataset_service = DatasetService(upload_dir=UPLOAD_DIR)
 
+    # Initialise the Redis Cache and attach it to app.state
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+    app.state.cache = RedisCache(redis_url)
+
     logger.info("DataInsight API startup complete.", upload_dir=str(UPLOAD_DIR))
 
     yield  # ← Application runs here
 
     # ── Shutdown ──────────────────────────────────────────────────────────
     logger.info("DataInsight API shutting down...")
-    # Future: close Redis connections, flush caches, etc.
+    if hasattr(app.state, "cache") and app.state.cache:
+        app.state.cache.close()
 
 
 # ---------------------------------------------------------------------------

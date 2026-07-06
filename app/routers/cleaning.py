@@ -30,6 +30,7 @@ from app.schemas.cleaning import (
 from app.schemas.response import SuccessResponse
 from app.services.cleaning_engine import DataCleaningEngine
 from app.services.dataset_service import DatasetService
+from app.routers.dependencies import get_dataset_service
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -41,13 +42,8 @@ router = APIRouter(
 
 
 # ---------------------------------------------------------------------------
-# Dependency: DatasetService (same shared instance as datasets router)
+# Dependencies
 # ---------------------------------------------------------------------------
-
-def get_dataset_service() -> DatasetService:
-    """Inject the shared DatasetService from app.state."""
-    from app.main import app
-    return app.state.dataset_service
 
 
 def get_cleaning_engine(
