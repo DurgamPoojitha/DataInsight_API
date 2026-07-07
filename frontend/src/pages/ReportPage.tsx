@@ -1,16 +1,44 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, Download, Share2 } from 'lucide-react';
+import { FileText, Download, Share2, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useDatasetReport } from '../hooks/useApi';
 
 export const ReportPage: React.FC = () => {
   const { datasetId } = useParams<{ datasetId: string }>();
 
-  // Use the environment variable or fallback to relative URL for same-origin
+  const { data: report, isLoading, error } = useDatasetReport(datasetId!);
+
+  // Get API base URL for image and link resolution
   const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-  
-  // The report download endpoint
-  const reportUrl = `${API_BASE_URL}/dataset/${datasetId}/report`;
+
+  // Helper to resolve URLs
+  const resolveUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    if (API_BASE_URL !== '/api/v1' && url.startsWith('/api/v1')) {
+      return `${API_BASE_URL}${url.substring(7)}`;
+    }
+    return url;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <h2 className="text-xl font-medium text-muted-foreground animate-pulse">Generating comprehensive PDF report...</h2>
+      </div>
+    );
+  }
+
+  if (error || !report) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center gap-4 text-destructive">
+        <AlertCircle className="h-16 w-16" />
+        <h2 className="text-2xl font-bold">Failed to generate report</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-8 pb-20 h-full">
@@ -35,7 +63,7 @@ export const ReportPage: React.FC = () => {
         
         <div className="flex gap-4">
           <a 
-            href={reportUrl} 
+            href={resolveUrl(report?.download_url || '')} 
             download
             className="inline-flex items-center justify-center overflow-hidden rounded-xl bg-gradient-to-tr from-primary to-accent px-8 py-4 font-semibold text-white shadow-[0_0_30px_rgba(124,58,237,0.3)] transition-all hover:shadow-[0_0_50px_rgba(124,58,237,0.5)] hover:scale-105"
           >

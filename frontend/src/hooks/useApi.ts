@@ -17,7 +17,7 @@ export const useDatasetStatistics = (datasetId: string) => {
     queryKey: ['statistics', datasetId],
     queryFn: async () => {
       const { data } = await api.post(`/analysis/describe/${datasetId}`, {
-        columns: null,
+        columns: [],
         nan_policy: 'omit'
       });
       return data.data;
@@ -30,7 +30,7 @@ export const useDatasetMissing = (datasetId: string) => {
   return useQuery({
     queryKey: ['missing', datasetId],
     queryFn: async () => {
-      const { data } = await api.get(`/missing-values/report/${datasetId}`);
+      const { data } = await api.post(`/missing-values/analyse/${datasetId}`);
       return data.data;
     },
     enabled: !!datasetId,
@@ -41,25 +41,40 @@ export const useDatasetOutliers = (datasetId: string) => {
   return useQuery({
     queryKey: ['outliers', datasetId],
     queryFn: async () => {
-      const { data } = await api.get(`/outliers/detect/${datasetId}`);
+      const { data } = await api.post(`/outliers/detect/${datasetId}`, {
+        method: 'iqr',
+        columns: [],
+        generate_boxplots: false
+      });
       return data.data;
     },
     enabled: !!datasetId,
   });
 };
 
-// Visualization query needs to hit the batch endpoint with a default payload.
-// For a robust system, we would first get numeric columns and generate a payload, 
-// but for now we'll just request a correlation heatmap.
 export const useDatasetVisualizations = (datasetId: string) => {
   return useQuery({
     queryKey: ['visualizations', datasetId],
     queryFn: async () => {
       const { data } = await api.post(`/visualizations/generate/${datasetId}`, {
         charts: [
-          { type: 'heatmap', columns: [] }
+          { type: 'heatmap', columns: [] },
+          { type: 'scatter', x: '', y: '' } // Add more defaults if needed or let it gracefully fail
         ],
-        export_format: 'both'
+        export_format: 'html' // Use HTML to avoid Kaleido headless chrome requirement
+      });
+      return data.data;
+    },
+    enabled: !!datasetId,
+  });
+};
+
+export const useDatasetReport = (datasetId: string) => {
+  return useQuery({
+    queryKey: ['report', datasetId],
+    queryFn: async () => {
+      const { data } = await api.post(`/reports/generate/${datasetId}`, {
+        include_visualizations: false // Avoid kaleido chrome error
       });
       return data.data;
     },
