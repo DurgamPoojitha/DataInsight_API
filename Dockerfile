@@ -40,9 +40,10 @@ RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 # ── Stage 2: Runtime ─────────────────────────────────────────
 FROM python:3.12-slim AS runtime
 
-# Install Redis server
+# Install Redis server and Chromium (required by Kaleido for PNG/PDF chart generation)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     redis-server \
+    chromium \
     && rm -rf /var/lib/apt/lists/*
 
 # Non-root user for security

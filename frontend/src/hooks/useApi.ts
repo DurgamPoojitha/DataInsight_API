@@ -44,7 +44,7 @@ export const useDatasetOutliers = (datasetId: string) => {
       const { data } = await api.post(`/outliers/detect/${datasetId}`, {
         method: 'iqr',
         columns: [],
-        generate_boxplots: false
+        generate_boxplots: true
       });
       return data.data;
     },
@@ -58,10 +58,9 @@ export const useDatasetVisualizations = (datasetId: string) => {
     queryFn: async () => {
       const { data } = await api.post(`/visualizations/generate/${datasetId}`, {
         charts: [
-          { type: 'heatmap', columns: [] },
-          { type: 'scatter', x: '', y: '' } // Add more defaults if needed or let it gracefully fail
+          { type: 'heatmap', columns: [] }
         ],
-        export_format: 'html' // Use HTML to avoid Kaleido headless chrome requirement
+        export_format: 'both' // We now have Chromium in Docker, so PNGs will work
       });
       return data.data;
     },
@@ -74,7 +73,7 @@ export const useDatasetReport = (datasetId: string) => {
     queryKey: ['report', datasetId],
     queryFn: async () => {
       const { data } = await api.post(`/reports/generate/${datasetId}`, {
-        include_visualizations: false // Avoid kaleido chrome error
+        include_visualizations: true // We can embed charts in PDF again
       });
       return data.data;
     },
