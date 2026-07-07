@@ -59,6 +59,17 @@ logger = get_logger(__name__)
 # Directory configuration (read from env vars with safe defaults)
 # ---------------------------------------------------------------------------
 
+try:
+    import plotly.io as pio
+    # For Kaleido in Docker (prevents the 'browser seemed to close immediately' crash)
+    # This must be set before any chart generation happens.
+    args = getattr(pio.kaleido.scope, "chromium_args", tuple())
+    pio.kaleido.scope.chromium_args = tuple(
+        [arg for arg in args if arg not in ("--no-sandbox", "--disable-dev-shm-usage")]
+    ) + ("--no-sandbox", "--disable-dev-shm-usage")
+except Exception as e:
+    logger.warning(f"Failed to configure Kaleido chromium_args: {e}")
+
 BASE_DIR: Path = Path(__file__).resolve().parent.parent
 
 UPLOAD_DIR: Path = BASE_DIR / os.getenv("UPLOAD_DIR", "uploads")
