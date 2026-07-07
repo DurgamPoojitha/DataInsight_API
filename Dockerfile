@@ -9,7 +9,16 @@
 #   Render will automatically inject the $PORT environment variable.
 #   The start.sh script will bind Uvicorn to this port and start Redis.
 
-# ── Stage 1: Builder ─────────────────────────────────────────
+# ── Stage 1: Frontend Builder ────────────────────────────────
+FROM node:20-slim AS frontend-builder
+
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ .
+RUN npm run build
+
+# ── Stage 2: Backend Builder ─────────────────────────────────
 FROM python:3.12-slim AS builder
 
 WORKDIR /build
@@ -47,6 +56,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application source
 COPY --chown=appuser:appuser . .
+
+# Copy compiled frontend from frontend-builder stage
+COPY --from=frontend-builder --chown=appuser:appuser /app/frontend/dist /app/frontend/dist
 
 # Create storage directories with correct ownership
 RUN mkdir -p uploads plots reports && \

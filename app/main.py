@@ -27,6 +27,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -209,18 +210,28 @@ app.include_router(
 
 
 # ---------------------------------------------------------------------------
-# Root endpoint
+# SPA Frontend Serving
 # ---------------------------------------------------------------------------
 
-@app.get("/", tags=["Root"], summary="API root")
-async def root() -> dict:
+FRONTEND_DIR = BASE_DIR / "frontend" / "dist"
+
+@app.get("/{full_path:path}", tags=["Frontend"], include_in_schema=False)
+async def serve_frontend(full_path: str):
     """
-    Root endpoint — returns a welcome message and links to documentation.
+    Serve the built React SPA. 
+    If a specific static asset is requested, return it.
+    Otherwise, fallback to index.html for client-side routing.
     """
+    requested_path = FRONTEND_DIR / full_path
+    if full_path and requested_path.is_file():
+        return FileResponse(requested_path)
+    
+    index_path = FRONTEND_DIR / "index.html"
+    if index_path.is_file():
+        return FileResponse(index_path)
+        
     return {
-        "message": "Welcome to DataInsight API",
-        "version": "1.0.0",
+        "message": "DataInsight API is running, but the frontend SPA was not found in frontend/dist.",
         "docs": "/docs",
-        "redoc": "/redoc",
-        "health": "/health",
+        "health": "/health"
     }
