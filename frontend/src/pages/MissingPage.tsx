@@ -38,44 +38,44 @@ export const MissingPage: React.FC = () => {
             <XCircle className="h-5 w-5" />
             <h3 className="font-semibold">Total Missing Cells</h3>
           </div>
-          <span className="text-4xl font-bold text-destructive">{missing.total_missing}</span>
+          <span className="text-4xl font-bold text-destructive">{missing.summary.total_missing_cells}</span>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6 flex flex-col gap-2">
           <h3 className="font-semibold text-muted-foreground mb-2">Overall Missing Percentage</h3>
-          <span className="text-4xl font-bold">{missing.missing_percentage.toFixed(2)}%</span>
+          <span className="text-4xl font-bold">{missing.summary.overall_missing_pct.toFixed(2)}%</span>
         </motion.div>
       </div>
 
       <h2 className="text-2xl font-semibold mt-4">Columns with Missing Data</h2>
       <div className="grid grid-cols-1 gap-4">
-        {Object.entries(missing.missing_by_column).map(([col, count]: [string, any], index) => {
-          if (count === 0) return null;
+        {missing.affected_columns?.map((colInfo: any, index: number) => {
+          if (colInfo.missing_count === 0) return null;
           return (
             <motion.div
-              key={col}
+              key={colInfo.column}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 + index * 0.05 }}
               className="glass-card p-4 flex items-center bg-white/5"
             >
-              <div className="w-1/3 font-medium text-lg truncate pr-4">{col}</div>
+              <div className="w-1/3 font-medium text-lg truncate pr-4">{colInfo.column}</div>
               <div className="w-2/3 flex items-center gap-4">
                 <div className="flex-1 h-3 bg-white/10 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
-                    animate={{ width: `${Math.min(100, (count / missing.total_missing) * 100)}%` }}
+                    animate={{ width: `${Math.min(100, (colInfo.missing_count / missing.summary.total_missing_cells) * 100)}%` }}
                     transition={{ duration: 1, delay: 0.5 + index * 0.1 }}
                     className="h-full bg-destructive"
                   />
                 </div>
-                <span className="w-16 text-right font-bold text-destructive">{count}</span>
+                <span className="w-16 text-right font-bold text-destructive">{colInfo.missing_count}</span>
               </div>
             </motion.div>
           );
         })}
         
-        {missing.total_missing === 0 && (
+        {missing.summary.total_missing_cells === 0 && (
           <div className="p-8 text-center glass-card border-emerald-500/30">
             <p className="text-xl font-medium text-emerald-400">Perfect! No missing values detected in this dataset.</p>
           </div>

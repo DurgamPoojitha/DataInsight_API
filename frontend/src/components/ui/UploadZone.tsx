@@ -15,10 +15,10 @@ export const UploadZone: React.FC = () => {
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await api.post('/upload', formData, {
+      const res = await api.post('/datasets/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      return res.data; // { dataset_id: string }
+      return res.data.data; // { dataset_id: string }
     },
     onSuccess: (data) => {
       // Small delay for the success animation

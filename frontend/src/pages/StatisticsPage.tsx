@@ -33,7 +33,7 @@ export const StatisticsPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        {Object.entries(stats.statistics).map(([column, data]: [string, any], index) => (
+        {Object.entries(stats.columns || {}).map(([column, data]: [string, any], index) => (
           <motion.div
             key={column}
             initial={{ opacity: 0, y: 20 }}
@@ -54,13 +54,13 @@ export const StatisticsPage: React.FC = () => {
             <div className="p-6 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               <StatItem label="Mean" value={data.mean} />
               <StatItem label="Median" value={data.median} />
-              <StatItem label="Min" value={data.min} />
-              <StatItem label="Max" value={data.max} />
+              <StatItem label="Min" value={data.minimum} />
+              <StatItem label="Max" value={data.maximum} />
               <StatItem label="Std Dev" value={data.std_dev} />
               <StatItem label="Variance" value={data.variance} />
-              <StatItem label="Skewness" value={data.skewness} />
-              <StatItem label="Kurtosis" value={data.kurtosis} />
-              <StatItem label="Missing %" value={data.missing_percentage} />
+              <StatItem label="Skewness" value={data.distribution?.skewness} />
+              <StatItem label="Kurtosis" value={data.distribution?.kurtosis} />
+              <StatItem label="Missing %" value={data.nan_pct} />
             </div>
           </motion.div>
         ))}

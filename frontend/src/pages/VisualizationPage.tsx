@@ -1,13 +1,27 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useDatasetVisualizations } from '../hooks/useApi';
-import { Loader2, AlertCircle, Maximize2 } from 'lucide-react';
+import { Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
-import Plot from 'react-plotly.js';
 
 export const VisualizationPage: React.FC = () => {
   const { datasetId } = useParams<{ datasetId: string }>();
   const { data: viz, isLoading, error } = useDatasetVisualizations(datasetId!);
+  
+  // Get API base URL for image and link resolution
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
+
+  // Helper to resolve URLs
+  const resolveUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    // The backend returns URLs starting with /api/v1, so we remove the duplicate if VITE_API_URL is set
+    if (API_BASE_URL !== '/api/v1' && url.startsWith('/api/v1')) {
+      return `${API_BASE_URL}${url.substring(7)}`;
+    }
+    // If VITE_API_URL is not set, we can just use the relative URL returned by the backend
+    return url;
+  };
 
   if (isLoading) {
     return (
@@ -26,57 +40,52 @@ export const VisualizationPage: React.FC = () => {
     );
   }
 
-  // The backend returns a dictionary where keys are plot names (e.g., 'histogram_Age')
-  // and values are the Plotly JSON figure strings.
-  const plots = Object.entries(viz.plots).map(([key, figStr]: [string, any]) => {
-    let figure = null;
-    try {
-      figure = JSON.parse(figStr);
-    } catch (e) {
-      console.error('Failed to parse plot JSON for', key);
-    }
-    return { key, figure };
-  }).filter(p => p.figure);
-
   return (
     <div className="flex flex-col gap-8 pb-20">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Interactive Visualizations</h1>
-        <p className="text-muted-foreground">AI-generated plots for numeric columns.</p>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Generated Visualizations</h1>
+        <p className="text-muted-foreground">Pre-generated charts exported from the backend engine.</p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-        {plots.map((plot, i) => (
+      <div className="grid grid-cols-1 gap-8">
+        {viz.charts?.map((chart: any) => (
           <motion.div
-            key={plot.key}
+            key={chart.chart_id}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card p-2 flex flex-col h-[450px] relative group"
+            className="glass-card p-4 flex flex-col items-center"
           >
-            <div className="absolute top-4 right-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button className="p-2 bg-background/80 backdrop-blur rounded-md border border-white/10 hover:bg-white/10">
-                <Maximize2 className="h-4 w-4 text-foreground" />
-              </button>
+            <div className="w-full flex justify-between items-center mb-4 px-2">
+              <h3 className="text-xl font-semibold capitalize">{chart.type} Chart</h3>
+              {chart.html_url && (
+                <a 
+                  href={resolveUrl(chart.html_url)} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-primary hover:text-accent transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" /> Interactive HTML
+                </a>
+              )}
             </div>
-            <div className="flex-1 w-full h-full rounded-xl overflow-hidden bg-white/5">
-              <Plot
-                data={plot.figure.data}
-                layout={{
-                  ...plot.figure.layout,
-                  autosize: true,
-                  paper_bgcolor: 'transparent',
-                  plot_bgcolor: 'transparent',
-                  font: { color: '#e5e5e5' },
-                  margin: { t: 40, r: 20, l: 40, b: 40 },
-                }}
-                config={{ responsive: true, displayModeBar: true, displaylogo: false }}
-                style={{ width: '100%', height: '100%' }}
-                useResizeHandler={true}
-              />
-            </div>
+            
+            {chart.png_url ? (
+              <div className="w-full bg-white/5 rounded-xl overflow-hidden p-4 flex justify-center">
+                <img src={resolveUrl(chart.png_url)} alt={`${chart.type} chart`} className="max-w-full h-auto rounded-lg shadow-2xl" />
+              </div>
+            ) : (
+              <div className="w-full h-64 bg-white/5 rounded-xl flex items-center justify-center text-muted-foreground">
+                {chart.error || "Image not available"}
+              </div>
+            )}
           </motion.div>
         ))}
+        
+        {(!viz.charts || viz.charts.length === 0) && (
+          <div className="p-8 text-center text-muted-foreground glass-card">
+            No charts were generated.
+          </div>
+        )}
       </div>
     </div>
   );

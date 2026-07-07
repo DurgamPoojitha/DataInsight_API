@@ -38,13 +38,13 @@ export const OutliersPage: React.FC = () => {
             <AlertTriangle className="h-5 w-5" />
             <h3 className="font-semibold">Total Outliers</h3>
           </div>
-          <span className="text-4xl font-bold text-amber-400">{outliers.total_outliers}</span>
+          <span className="text-4xl font-bold text-amber-400">{outliers.total_outlier_cells}</span>
           <p className="text-sm text-muted-foreground">Across all numeric columns</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6 flex flex-col gap-2">
           <h3 className="font-semibold text-muted-foreground mb-2">Affected Rows</h3>
-          <span className="text-4xl font-bold">{outliers.affected_rows}</span>
+          <span className="text-4xl font-bold">{outliers.total_outlier_rows}</span>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6 flex flex-col gap-2">
@@ -55,8 +55,8 @@ export const OutliersPage: React.FC = () => {
 
       <h2 className="text-2xl font-semibold mt-4">Column Breakdown</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {Object.entries(outliers.outliers_per_column).map(([col, count]: [string, any], index) => {
-          if (count === 0) return null;
+        {Object.entries(outliers.column_results || {}).map(([col, result]: [string, any], index) => {
+          if (result.outlier_count === 0) return null;
           return (
             <motion.div
               key={col}
@@ -67,7 +67,7 @@ export const OutliersPage: React.FC = () => {
             >
               <span className="text-lg font-medium">{col}</span>
               <div className="flex items-center gap-3">
-                <span className="text-2xl font-bold text-amber-400">{count}</span>
+                <span className="text-2xl font-bold text-amber-400">{result.outlier_count}</span>
                 <span className="text-sm text-muted-foreground">detected</span>
               </div>
             </motion.div>
