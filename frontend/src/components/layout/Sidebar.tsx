@@ -22,7 +22,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ datasetId }) => {
   ];
 
   return (
-    <div className="w-64 h-[calc(100vh-4rem)] border-r border-white/10 glass-card rounded-none rounded-br-3xl flex flex-col pt-6 pb-4">
+    <div className="w-[260px] h-[calc(100vh-4rem)] border-r border-border bg-background flex flex-col pt-6 pb-4 shrink-0">
       <div className="px-4 mb-4">
         <h2 className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
           {datasetId ? 'Analysis Tools' : 'Overview'}
@@ -36,10 +36,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ datasetId }) => {
             end={route.path === '/dashboard' || route.path.endsWith(datasetId || '')}
             className={({ isActive }) =>
               cn(
-                "group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 relative",
+                "group flex items-center px-3 py-2 text-[13px] font-medium rounded-md transition-colors relative mb-1",
                 isActive 
-                  ? "text-white bg-white/10" 
-                  : "text-foreground/70 hover:text-white hover:bg-white/5"
+                  ? "text-primary-foreground bg-white/5" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
               )
             }
           >
@@ -48,12 +48,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ datasetId }) => {
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
-                    className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/20 to-transparent border-l-4 border-primary"
+                    className="absolute inset-y-0 left-0 w-[3px] rounded-r-full bg-primary"
                     initial={false}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 40 }}
                   />
                 )}
-                <route.icon className={cn("flex-shrink-0 -ml-1 mr-3 h-5 w-5 z-10 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/80")} />
+                <route.icon className={cn("flex-shrink-0 mr-3 h-4 w-4 z-10 transition-colors", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                 <span className="truncate z-10">{route.name}</span>
               </>
             )}

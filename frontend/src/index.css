@@ -4,40 +4,42 @@
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Vercel/Linear-style ultra dark monochrome */
+    --background: 0 0% 0%;         /* Pitch black */
+    --foreground: 0 0% 93%;        /* Off-white text */
 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 4%;               /* Very dark grey card */
+    --card-foreground: 0 0% 93%;
 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 93%;
 
-    /* Primary: Deep Indigo */
-    --primary: 252 56% 57%;
-    --primary-foreground: 0 0% 98%;
+    /* Primary: Electric Violet/Blue Accent */
+    --primary: 255 85% 65%;
+    --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Emerald */
-    --secondary: 160 84% 39%;
-    --secondary-foreground: 0 0% 98%;
+    /* Secondary: Soft Gray */
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 93%;
 
-    /* Accent: Electric Blue */
-    --accent: 199 89% 48%;
-    --accent-foreground: 0 0% 98%;
+    /* Accent: Subtle glow or hover states */
+    --accent: 0 0% 12%;
+    --accent-foreground: 0 0% 93%;
 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;  /* Muted text, highly legible */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
+    --border: 0 0% 15%;            /* Crisp, barely-there borders */
+    --input: 0 0% 12%;
+    --ring: 255 85% 65%;
     
-    --radius: 0.75rem;
+    --radius: 0.5rem;              /* Sharper corners (8px) instead of overly round */
     
-    --chart-1: 252 56% 57%;
+    /* Chart Colors - Minimal, professional */
+    --chart-1: 255 85% 65%;
     --chart-2: 199 89% 48%;
     --chart-3: 160 84% 39%;
     --chart-4: 280 65% 60%;
@@ -53,30 +55,41 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
-    /* Soft dark gradient background */
-    background: radial-gradient(circle at top center, #1a1a2e, #0f0f1a);
     min-height: 100vh;
+    /* Subtle noise texture or plain black, we'll keep it pure black for stark contrast */
   }
 }
 
-/* Glassmorphism utilities */
+/* Minimal utility classes for micro-interactions */
+
 .glass {
-  background-color: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* We tone this way down from the previous version to be a subtle blur instead of heavy frosted glass */
+  background-color: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-card {
-  background-color: rgba(15, 23, 42, 0.4);
+  /* Used sparingly for floating command palettes or context menus */
+  background-color: rgba(10, 10, 10, 0.7);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(51, 65, 85, 0.5);
-  border-radius: 1rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px rgba(0,0,0,1), 0 16px 32px rgba(0,0,0,0.5);
 }
 
 .text-gradient {
-  background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--secondary)));
+  /* Premium linear gradient for headers */
+  background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
   -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.text-gradient-primary {
+  /* Brand accent gradient */
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
 }

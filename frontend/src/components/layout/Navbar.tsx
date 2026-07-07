@@ -1,39 +1,62 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Activity, Bell, Search } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Database, Search, Command } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
+  const location = useLocation();
+  const pathParts = location.pathname.split('/').filter(Boolean);
+  const isDataset = pathParts[0] === 'dataset';
+
   return (
-    <header className="sticky top-0 z-40 w-full glass border-b border-white/10">
-      <div className="flex h-16 items-center px-4 md:px-6">
-        <div className="flex items-center gap-2 font-bold text-xl mr-8 tracking-tight">
-          <Activity className="h-6 w-6 text-primary" />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent">
-            DataInsight AI
+    <header className="sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border">
+      <div className="flex h-14 items-center px-6 max-w-[1600px] mx-auto w-full">
+        <div className="flex items-center gap-2 font-bold text-base tracking-tight mr-6">
+          <div className="h-7 w-7 rounded bg-primary flex items-center justify-center">
+            <span className="text-white font-bold leading-none -ml-0.5">D</span>
+            <span className="text-white font-bold leading-none -ml-0.5">I</span>
+          </div>
+          <span className="text-foreground">
+            DataInsight
           </span>
         </div>
         
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-          <Link to="/" className="transition-colors hover:text-primary text-foreground/80">Home</Link>
-          <Link to="/dashboard" className="transition-colors hover:text-primary text-foreground/80">Dashboard</Link>
-          <a href="https://datainsight-api-2dqt.onrender.com/docs" target="_blank" rel="noreferrer" className="transition-colors hover:text-primary text-foreground/80">API Docs</a>
+        <nav className="hidden md:flex items-center text-sm">
+          <div className="flex items-center text-muted-foreground">
+            {isDataset ? (
+              <>
+                <Link to="/dashboard" className="transition-colors hover:text-foreground">Datasets</Link>
+                <span className="mx-2 text-border">/</span>
+                <span className="text-foreground font-medium flex items-center gap-1.5">
+                  <Database className="h-3.5 w-3.5 text-muted-foreground" />
+                  {pathParts[1]}
+                </span>
+              </>
+            ) : (
+              <Link to="/dashboard" className="transition-colors hover:text-foreground font-medium">Dashboard</Link>
+            )}
+          </div>
         </nav>
 
         <div className="ml-auto flex items-center space-x-4">
-          <div className="relative hidden md:block">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search datasets..."
-              className="h-9 w-64 rounded-full border border-white/10 bg-white/5 pl-9 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-            />
-          </div>
-          <button className="relative p-2 rounded-full hover:bg-white/10 transition-colors">
-            <Bell className="h-5 w-5 text-foreground/80" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+          <button className="hidden md:flex items-center gap-2 h-8 px-3 rounded-md border border-border bg-muted/30 hover:bg-muted/50 transition-colors text-muted-foreground text-xs font-medium w-64 justify-between">
+            <span className="flex items-center gap-2">
+              <Search className="h-3.5 w-3.5" />
+              Search datasets...
+            </span>
+            <span className="flex items-center gap-0.5 opacity-60">
+              <Command className="h-3 w-3" />K
+            </span>
           </button>
-          <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-white font-semibold shadow-lg cursor-pointer">
-            AI
+          <a 
+            href="https://datainsight-api-2dqt.onrender.com/docs" 
+            target="_blank" 
+            rel="noreferrer"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors mr-2 hidden md:block"
+          >
+            API
+          </a>
+          <div className="h-7 w-7 rounded-full bg-secondary border border-border flex items-center justify-center text-foreground text-xs font-medium cursor-pointer hover:bg-muted transition-colors">
+            PD
           </div>
         </div>
       </div>
